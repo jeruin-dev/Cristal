@@ -1,13 +1,14 @@
 #include "headers/Cristal.hpp"
 #include <GLFW/glfw3.h>
 #include <fmt/base.h>
+#include "triangulo.cpp"
 
 void glfw_error_callback(int error, const char* description){
     fmt::println("GLFW Error: {} : {}", error, description);
 }
 
 void App::Cristal::onInitialize(){
-    glClearColor(1.5f, 2.2f, 0.7f, 1.0f);
+    glClearColor(0.3f, 0.3f, 0.3f, 1.0f);
 }
 
 void App::Cristal::configureOpenGL(){
@@ -57,6 +58,7 @@ int App::Cristal::run(){
             glfwTerminate();
             return -1;
         }
+
         glfwMakeContextCurrent(window);
 
         if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
@@ -70,20 +72,23 @@ int App::Cristal::run(){
         glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
     #endif
 
+
+
         onInitialize();
-
         double last_frame_time = glfwGetTime();
-
+        triangel::setup();
         while(!glfwWindowShouldClose(window)){
             glfwPollEvents();
 
             auto frame_buffer_size = getFrameBufferSize();
             glViewport(0, 0, frame_buffer_size.x, frame_buffer_size.y);
 
+
             double current_frame_time = glfwGetTime();
                    onDraw(current_frame_time - last_frame_time);
                    last_frame_time = current_frame_time;
 
+            triangel::render(frame_buffer_size.x, frame_buffer_size.y);
             glfwSwapBuffers(window);
         }
 
@@ -94,5 +99,5 @@ int App::Cristal::run(){
 }
 
 void App::Cristal::onDraw(double deltaTime){
-            glClear(GL_COLOR_BUFFER_BIT);
+    glClear(GL_COLOR_BUFFER_BIT);
 }

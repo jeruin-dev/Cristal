@@ -1,7 +1,6 @@
 #include <Cristal.hpp>
 #include <GLFW/glfw3.h>
-#include "headers/Cristal.hpp"
-
+#include <fmt/base.h>
 
 int main(){
 
