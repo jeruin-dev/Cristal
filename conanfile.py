@@ -12,7 +12,6 @@ class Cristal(ConanFile):
         self.requires("fmt/11.2.0")
         self.requires("glad/0.1.36")
         self.requires("glfw/3.4")
-        self.requires("angelscript/2.38.0")
         self.requires("glm/1.0.1")
 
     def layout(self):
