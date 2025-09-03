@@ -1,3 +1,3 @@
-[submodule "submodules/AngelEngine"]
-	path = submodules/AngelEngine
-	url = git@github.com:jeruin-dev/AngelEngine.git
+[submodule "submodules/asbind20"]
+	path = submodules/asbind20
+	url = git@github.com:HenryAWE/asbind20.git
