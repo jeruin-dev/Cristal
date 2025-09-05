@@ -1,142 +1,187 @@
+
 #ifndef TRIANGEL_H
 #define TRIANGEL_H
 
+
+#include <fmt/base.h>
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-#include <fmt/base.h>
+#include <fmt/core.h>
+#include <string>
+#include <vector>
 #include <glm/glm.hpp>
 
-namespace triangel {
+
+namespace geometria {
 
 
-const char *vertexShaderSource = R"(
+// =========================================================
+// Clase Shader (RAII para un solo shader)
+// =========================================================
+class Shader {
+    GLuint id;
+public:
+    Shader(GLenum type, const char* source) {
+        id = glCreateShader(type);
+        glShaderSource(id, 1, &source, nullptr);
+        glCompileShader(id);
+
+        int success;
+        char infoLog[512];
+        glGetShaderiv(id, GL_COMPILE_STATUS, &success);
+        if (!success) {
+            glGetShaderInfoLog(id, 512, nullptr, infoLog);
+            fmt::print("ERROR::SHADER::COMPILATION_FAILED\n{}\n", infoLog);
+            throw std::runtime_error("Shader compilation failed");
+        }
+    }
+
+    GLuint getID() const { return id; }
+
+    ~Shader() { glDeleteShader(id); }
+};
+
+// =========================================================
+// Clase ShaderProgram (RAII para el programa de shaders)
+// =========================================================
+class ShaderProgram {
+    GLuint id;
+public:
+    ShaderProgram(const char* vertexSrc, const char* fragmentSrc) {
+        Shader vs(GL_VERTEX_SHADER, vertexSrc);
+        Shader fs(GL_FRAGMENT_SHADER, fragmentSrc);
+
+        id = glCreateProgram();
+        glAttachShader(id, vs.getID());
+        glAttachShader(id, fs.getID());
+        glLinkProgram(id);
+
+        int success;
+        char infoLog[512];
+        glGetProgramiv(id, GL_LINK_STATUS, &success);
+        if (!success) {
+            glGetProgramInfoLog(id, 512, nullptr, infoLog);
+            fmt::print("ERROR::PROGRAM::LINKING_FAILED\n{}\n", infoLog);
+            throw std::runtime_error("Program linking failed");
+        }
+    }
+
+    void use() const { glUseProgram(id); }
+
+    GLuint getID() const { return id; }
+
+    void setUniform3f(const std::string& name, float x, float y, float z) const {
+        GLint loc = glGetUniformLocation(id, name.c_str());
+        glUniform3f(loc, x, y, z);
+    }
+
+    ~ShaderProgram() { glDeleteProgram(id); }
+};
+
+// =========================================================
+// Clase Mesh (RAII para VBO/VAO)
+// =========================================================
+class Mesh {
+    GLuint VAO, VBO;
+    GLsizei vertexCount;
+public:
+    Mesh(const std::vector<float>& vertices) {
+        vertexCount = static_cast<GLsizei>(vertices.size() / 6); // 6 floats por vértice
+
+        glGenVertexArrays(1, &VAO);
+        glGenBuffers(1, &VBO);
+
+        glBindVertexArray(VAO);
+
+        glBindBuffer(GL_ARRAY_BUFFER, VBO);
+        glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float),
+                     vertices.data(), GL_STATIC_DRAW);
+
+        // atributo 0: posición
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE,
+                              6 * sizeof(float), (void*)0);
+        glEnableVertexAttribArray(0);
+
+        // atributo 1: color
+        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE,
+                              6 * sizeof(float), (void*)(3 * sizeof(float)));
+        glEnableVertexAttribArray(1);
+
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glBindVertexArray(0);
+    }
+
+    void draw() const {
+        glBindVertexArray(VAO);
+        glDrawArrays(GL_TRIANGLES, 0, vertexCount);
+    }
+
+    ~Mesh() {
+        glDeleteVertexArrays(1, &VAO);
+        glDeleteBuffers(1, &VBO);
+    }
+};
+
+// =========================================================
+// Shaders fuente
+// =========================================================
+const char* vertexShaderSource = R"(
     #version 330 core
+    layout (location = 0) in vec3 apos;
+    layout (location = 1) in vec3 acolor;
 
-    layout (location = 0) in vec3 apos;   // posición del vértice
-    layout (location = 1) in vec3 acolor; // color del vértice
-
-    out vec3 vertexColor; // se pasa al fragment shader
+    out vec3 vertexColor;
 
     void main() {
-        gl_Position = vec4(apos.x, apos.y, apos.z, 1.0);
+        gl_Position = vec4(apos, 1.0);
         vertexColor = acolor;
     }
 )";
 
-const char *fragmentShaderSource = R"(
+const char* fragmentShaderSource = R"(
     #version 330 core
     in vec3 vertexColor;
     out vec4 FragColor;
+
+    uniform vec3 globalColor; // opcional
+
     void main() {
-        FragColor = vec4(vertexColor, 1.0);
+        FragColor = vec4(vertexColor * globalColor, 1.0);
     }
 )";
 
-unsigned int vertexShader;
-unsigned int fragmentShader;
-unsigned int shaderProgram;
-
-// Compilacion De Vertex Shader
-int SetupVertexShader() {
-    vertexShader = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vertexShader, 1, &vertexShaderSource, nullptr);
-    glCompileShader(vertexShader);
-
-    int success;
-    char infoLog[512];
-    glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
-    if (!success) {
-        glGetShaderInfoLog(vertexShader, 512, nullptr, infoLog);
-        fmt::print("ERROR: Vertex shader compilation failed:\n{}", infoLog);
-        return -1;
-    }
-    return 0;
-}
-
-int SetupFragmentShader() {
-    fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fragmentShader, 1, &fragmentShaderSource, nullptr);
-    glCompileShader(fragmentShader);
-    {
-        int success;
-        char infoLog[512];
-        glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
-        if (!success) {
-            glGetShaderInfoLog(fragmentShader, 512, nullptr, infoLog);
-            fmt::print("ERROR: Fragment shader compilation failed:\n{}", infoLog);
-            return -1;
-        }
-    }
-    return 0;
-}
-
-// Linkear shaders en un programa
-
-int setupProgram() {
-    shaderProgram = glCreateProgram();
-    glAttachShader(shaderProgram, vertexShader);
-    glAttachShader(shaderProgram, fragmentShader);
-    glLinkProgram(shaderProgram);
-    {
-        int success;
-        char infoLog[512];
-        glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
-        if (!success) {
-            glGetProgramInfoLog(shaderProgram, 512, nullptr, infoLog);
-            fmt::print("ERROR: Shader program linking failed:\n{}", infoLog);
-            return -1;
-        }
-    }
-
-    // Los shaders ya están linkeados; podemos borrarlos
-    glDeleteShader(vertexShader);
-    glDeleteShader(fragmentShader);
-    return 0;
-}
-
-float vertices[] = {
-    // posiciones        // colores (RGB)
-     0.5f,  0.5f, 0.0f,  1.0f, 0.0f, 0.0f, // vértice superior (rojo)
-    -0.5f, -0.5f, 0.0f,  0.0f, 1.0f, 0.0f, // vértice inferior izq (verde)
-     0.5f, -0.5f, 0.0f,  0.0f, 0.0f, 1.0f  // vértice inferior der (azul)
+// =========================================================
+// Datos del triángulo
+// =========================================================
+std::vector<float> vertices = {
+     // posiciones        // colores
+     0.0f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f, // arriba rojo
+    -0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f, // izq verde
+     0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f  // der azul
 };
 
-unsigned int VBO, VAO;
+// =========================================================
+// Setup y Render
+// =========================================================
+ShaderProgram* shaderProgram;
+Mesh* mesh;
 
-void setupBuffers() {
-    glGenVertexArrays(1, &VAO);
-    glGenBuffers(1, &VBO);
-
-    // Bind del VAO (guarda la configuración de atributos)
-    glBindVertexArray(VAO);
-
-    // Subir datos al VBO
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-    // Decirle a OpenGL cómo interpretar los datos del VBO (atributo 0)
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)0);
-    glEnableVertexAttribArray(0);
-
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
-    glEnableVertexAttribArray(1);
-
-    // Desbinds opcionales
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindVertexArray(0);
-}
 void setup() {
-    SetupVertexShader();
-    SetupFragmentShader();
-    setupProgram();
-    setupBuffers();
-}
-void render(int width, int height) {
-    glUseProgram(shaderProgram);
-    glBindVertexArray(VAO);
-    glDrawArrays(GL_TRIANGLES, 0, 3);
+    shaderProgram = new ShaderProgram(vertexShaderSource, fragmentShaderSource);
+    mesh = new Mesh(vertices);
 }
 
-} // namespace triangle
+ void render() {
+    shaderProgram->use();
+    shaderProgram->setUniform3f("globalColor", 1.0f, 1.0f, 1.0f); // blanco → sin cambio
 
+    mesh->draw();
+}
+
+void cleanup() {
+    delete shaderProgram;
+    delete mesh;
+}
+
+}   //Namespace geometria
 #endif
