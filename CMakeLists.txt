@@ -15,6 +15,6 @@ find_package(glad REQUIRED)
 find_package(glm REQUIRED)
 add_executable(${PROJECT_NAME} "source/main.cpp" ${add_on})
 
-target_sources(${PROJECT_NAME} PRIVATE "source/Cristal.cpp")
+target_sources(${PROJECT_NAME} PRIVATE "source/Window.cpp")
 target_include_directories(${PROJECT_NAME} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/source/headers" )
 target_link_libraries(${PROJECT_NAME} glfw fmt::fmt glad::glad glm::glm)
