@@ -5,15 +5,14 @@ project(Cristal LANGUAGES CXX)
 set(cmake_export_compile_commands on)
 
 set(Source
-       ${CMAKE_CURRENT_SOURCE_DIR}/source/Angel.cpp
-       ${CMAKE_CURRENT_SOURCE_DIR}/source/triangulo.cpp
+       ${CMAKE_CURRENT_SOURCE_DIR}/source/Render.cpp
 )
 
 find_package(fmt REQUIRED)
 find_package(glfw3 REQUIRED)
 find_package(glad REQUIRED)
 find_package(glm REQUIRED)
-add_executable(${PROJECT_NAME} "source/main.cpp" ${add_on})
+add_executable(${PROJECT_NAME} "source/main.cpp" ${Source})
 
 target_sources(${PROJECT_NAME} PRIVATE "source/Window.cpp")
 target_include_directories(${PROJECT_NAME} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/source/headers" )

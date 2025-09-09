@@ -1,12 +1,12 @@
 #include <Window.hpp>
 #include <GLFW/glfw3.h>
 #include <fmt/base.h>
-
+#include <Render.hpp>
 void glfw_error_callback(int error, const char* description){
     fmt::println("GLFW Error: {} : {}", error, description);
 }
 
-class Cristal : Window{
+class Cristal : Window , Render{
     public:
     int run() {
         glfwSetErrorCallback(glfw_error_callback);
@@ -43,17 +43,18 @@ class Cristal : Window{
 
         onInitialize();
         double last_frame_time = glfwGetTime();
+        RenderOnInitialize();
         while(!glfwWindowShouldClose(window)){
             glfwPollEvents();
 
             auto frame_buffer_size = getFrameBufferSize();
             glViewport(0, 0, frame_buffer_size.x, frame_buffer_size.y);
 
-
             double current_frame_time = glfwGetTime();
             onDraw(current_frame_time - last_frame_time);
             last_frame_time = current_frame_time;
 
+            OnDraw();
             glfwSwapBuffers(window);
         }
 
@@ -70,6 +71,6 @@ int main(){
     auto cristal = new Cristal;
 
     cristal->run();
-
+    delete cristal;
     return 0;
 }
