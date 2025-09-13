@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.15)
 
 project(Cristal LANGUAGES CXX)
 
+
+
 set(cmake_export_compile_commands on)
 
 set(Source

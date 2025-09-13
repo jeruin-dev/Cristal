@@ -5,13 +5,7 @@
   {
     "label": "Config Conan Debug",
     "command": "conan",
-    "args": [
-      "install",
-      ".",
-      "--build=missing",
-      "--profile:host",
-      "Clang_Debug"
-    ],
+    "args": ["install", ".", "--build=missing", "--profile:host", "GCC_Debug"],
     "cwd": "$ZED_WORKTREE_ROOT"
   },
   {
